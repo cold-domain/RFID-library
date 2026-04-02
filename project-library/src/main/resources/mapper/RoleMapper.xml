@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.library.mapper.RoleMapper">
+
+    <!-- 根据用户ID查询角色列表 -->
+    <select id="selectRolesByUserId" resultType="com.library.entity.Role">
+        SELECT r.*
+        FROM roles r
+        INNER JOIN user_roles ur ON r.role_id = ur.role_id
+        WHERE ur.user_id = #{userId} AND ur.status = 1 AND r.status = 1
+        ORDER BY r.sort_order ASC
+    </select>
+
+</mapper>

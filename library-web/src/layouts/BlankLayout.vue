@@ -1,0 +1,16 @@
+<template>
+  <div class="blank-layout">
+    <router-view />
+  </div>
+</template>
+
+<style scoped>
+.blank-layout {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+</style>

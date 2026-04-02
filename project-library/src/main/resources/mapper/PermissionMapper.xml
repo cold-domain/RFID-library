@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.library.mapper.PermissionMapper">
+
+    <!-- 根据角色ID查询权限列表 -->
+    <select id="selectPermissionsByRoleId" resultType="com.library.entity.Permission">
+        SELECT p.*
+        FROM permissions p
+        INNER JOIN role_permissions rp ON p.permission_id = rp.permission_id
+        WHERE rp.role_id = #{roleId} AND rp.status = 1 AND p.status = 1
+        ORDER BY p.sort_order ASC
+    </select>
+
+    <!-- 根据用户ID查询权限列表 -->
+    <select id="selectPermissionsByUserId" resultType="com.library.entity.Permission">
+        SELECT DISTINCT p.*
+        FROM permissions p
+        INNER JOIN role_permissions rp ON p.permission_id = rp.permission_id
+        INNER JOIN user_roles ur ON rp.role_id = ur.role_id
+        WHERE ur.user_id = #{userId} AND ur.status = 1 AND rp.status = 1 AND p.status = 1
+        ORDER BY p.sort_order ASC
+    </select>
+
+</mapper>

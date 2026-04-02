@@ -1,0 +1,49 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Local tooling
+.claude/
+
+# Logs
+*.log
+logs/
+
+# Java / Maven / Spring Boot
+project-library/target/
+project-library/.mvn/
+project-library/out/
+project-library/uploads/
+project-library/*.log
+
+# Java compiled files
+*.class
+
+# Frontend / Node / Vite
+library-web/node_modules/
+library-web/dist/
+library-web/.vite/
+library-web/coverage/
+library-web/*.log
+
+# Environment files
+.env.local
+.env.*.local
+project-library/src/main/resources/application-local.yml
+project-library/src/main/resources/application-dev.yml
+project-library/src/main/resources/application-prod.yml
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+~$*
