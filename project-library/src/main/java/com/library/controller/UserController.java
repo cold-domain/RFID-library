@@ -3,6 +3,7 @@ package com.library.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.library.common.utils.ContextHolder;
 import com.library.common.vo.Result;
+import com.library.dto.UserRoleAssignDTO;
 import com.library.entity.Role;
 import com.library.entity.User;
 import com.library.service.RoleService;
@@ -10,6 +11,7 @@ import com.library.service.UserRoleService;
 import com.library.service.UserService;
 import com.library.vo.UserVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.format.DateTimeFormatter;
@@ -39,6 +41,7 @@ public class UserController {
      * 分页查询用户列表（返回UserVO，含角色信息）
      */
     @GetMapping
+    @PreAuthorize("hasAuthority('user:view')")
     public Result<?> list(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
@@ -51,6 +54,7 @@ public class UserController {
      * 根据ID查询用户详情（返回UserVO）
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('user:view')")
     public Result<?> getById(@PathVariable Long id) {
         User user = userService.getById(id);
         if (user == null) {
@@ -77,6 +81,7 @@ public class UserController {
      * 新增用户（自动分配读者角色）
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('user:create')")
     public Result<?> add(@RequestBody User user) {
         User registered = userService.register(user);
         // 自动分配读者角色（与公开注册保持一致）
@@ -95,6 +100,7 @@ public class UserController {
      * 修改用户信息
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('user:update')")
     public Result<?> update(@PathVariable Long id, @RequestBody User user) {
         user.setUserId(id);
         user.setPassword(null); // 不通过此接口修改密码
@@ -106,6 +112,7 @@ public class UserController {
      * 删除用户（逻辑删除）
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('user:delete')")
     public Result<?> delete(@PathVariable Long id) {
         userService.removeById(id);
         return Result.success("删除用户成功");
@@ -115,6 +122,7 @@ public class UserController {
      * 重置用户密码
      */
     @PutMapping("/{id}/reset-password")
+    @PreAuthorize("hasAuthority('user:update')")
     public Result<?> resetPassword(@PathVariable Long id) {
         userService.resetPassword(id);
         return Result.success("密码已重置为123456");
@@ -124,6 +132,7 @@ public class UserController {
      * 更新用户账号状态
      */
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('user:update')")
     public Result<?> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
         userService.updateAccountStatus(id, status);
         return Result.success("状态更新成功");
@@ -133,9 +142,10 @@ public class UserController {
      * 为用户分配角色
      */
     @PutMapping("/{id}/roles")
-    public Result<?> assignRoles(@PathVariable Long id, @RequestBody List<Long> roleIds) {
+    @PreAuthorize("hasAuthority('user:update')")
+    public Result<?> assignRoles(@PathVariable Long id, @RequestBody List<UserRoleAssignDTO> roleAssignments) {
         Long assignerId = ContextHolder.getCurrentUserId();
-        userRoleService.assignRoles(id, roleIds, assignerId);
+        userRoleService.assignRoles(id, roleAssignments == null ? Collections.emptyList() : roleAssignments, assignerId);
         return Result.success("角色分配成功");
     }
 }

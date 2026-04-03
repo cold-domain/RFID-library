@@ -1,6 +1,6 @@
-<template>
+﻿<template>
   <div class="dashboard">
-    <h2>控制中心</h2>
+    <h2>{{ texts.dashboard }}</h2>
     <el-row :gutter="20" class="stat-cards">
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
@@ -9,7 +9,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.totalBooks }}</div>
-            <div class="stat-label">图书总数</div>
+            <div class="stat-label">{{ texts.totalBooks }}</div>
           </div>
         </el-card>
       </el-col>
@@ -20,7 +20,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.totalUsers }}</div>
-            <div class="stat-label">用户总数</div>
+            <div class="stat-label">{{ texts.totalUsers }}</div>
           </div>
         </el-card>
       </el-col>
@@ -31,7 +31,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.activeBorrows }}</div>
-            <div class="stat-label">当前借阅</div>
+            <div class="stat-label">{{ texts.activeBorrows }}</div>
           </div>
         </el-card>
       </el-col>
@@ -42,23 +42,22 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.overdueCount }}</div>
-            <div class="stat-label">逾期未还</div>
+            <div class="stat-label">{{ texts.overdueCount }}</div>
           </div>
         </el-card>
       </el-col>
     </el-row>
 
-    <!-- ECharts 图表区 -->
     <el-row :gutter="20" style="margin-top: 20px;">
       <el-col :span="12">
         <el-card>
-          <template #header>近7天借阅趋势</template>
+          <template #header>{{ texts.borrowTrend }}</template>
           <div ref="borrowTrendRef" class="chart-container"></div>
         </el-card>
       </el-col>
       <el-col :span="12">
         <el-card>
-          <template #header>图书分类分布</template>
+          <template #header>{{ texts.categoryStats }}</template>
           <div ref="categoryRef" class="chart-container"></div>
         </el-card>
       </el-col>
@@ -67,31 +66,33 @@
     <el-row :gutter="20" style="margin-top: 20px;">
       <el-col :span="12">
         <el-card>
-          <template #header>快捷操作</template>
+          <template #header>{{ texts.quickActions }}</template>
           <div class="quick-actions">
             <el-button type="primary" @click="$router.push('/public/books')">
-              <el-icon><Search /></el-icon>搜索图书
+              <el-icon><Search /></el-icon>{{ texts.bookSearch }}
             </el-button>
-            <el-button v-if="userStore.hasAccess('reader')" @click="$router.push('/reader/borrows')">
-              <el-icon><Tickets /></el-icon>我的借阅
+            <el-button v-if="userStore.hasPermission('reader:borrows')" @click="$router.push('/reader/borrows')">
+              <el-icon><Tickets /></el-icon>{{ texts.myBorrows }}
             </el-button>
-            <el-button v-if="userStore.hasAccess('librarian')" type="success" @click="$router.push('/librarian/books')">
-              <el-icon><Management /></el-icon>图书管理
+            <el-button v-if="userStore.hasPermission('book')" type="success" @click="$router.push('/librarian/books')">
+              <el-icon><Management /></el-icon>{{ texts.bookManage }}
             </el-button>
-            <el-button v-if="userStore.hasAccess('system_admin')" type="danger" @click="$router.push('/admin/users')">
-              <el-icon><Setting /></el-icon>系统管理
+            <el-button v-if="userStore.hasPermission('user')" type="danger" @click="$router.push('/admin/users')">
+              <el-icon><Setting /></el-icon>{{ texts.userManage }}
             </el-button>
           </div>
         </el-card>
       </el-col>
       <el-col :span="12">
         <el-card>
-          <template #header>个人信息</template>
+          <template #header>{{ texts.profile }}</template>
           <el-descriptions :column="1" border size="small">
-            <el-descriptions-item label="用户名">{{ userStore.username }}</el-descriptions-item>
-            <el-descriptions-item label="姓名">{{ userStore.realName }}</el-descriptions-item>
-            <el-descriptions-item label="角色">
-              <el-tag v-for="role in userStore.roles" :key="role" size="small" style="margin-right: 4px;">{{ roleLabels[role] || role }}</el-tag>
+            <el-descriptions-item :label="texts.username">{{ userStore.username }}</el-descriptions-item>
+            <el-descriptions-item :label="texts.realName">{{ userStore.realName }}</el-descriptions-item>
+            <el-descriptions-item :label="texts.roles">
+              <el-tag v-for="role in userStore.roles" :key="role" size="small" style="margin-right: 4px;">
+                {{ roleLabels[role] || role }}
+              </el-tag>
             </el-descriptions-item>
           </el-descriptions>
         </el-card>
@@ -101,19 +102,37 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 import * as echarts from 'echarts'
 import { useUserStore } from '@/store/user'
 import { getDashboardStats } from '@/api/dashboard'
 
-const userStore = useUserStore()
+const texts = {
+  dashboard: '\u63a7\u5236\u4e2d\u5fc3',
+  totalBooks: '\u56fe\u4e66\u603b\u6570',
+  totalUsers: '\u7528\u6237\u603b\u6570',
+  activeBorrows: '\u5f53\u524d\u501f\u9605',
+  overdueCount: '\u903e\u671f\u672a\u8fd8',
+  borrowTrend: '\u8fd1\u4e03\u5929\u501f\u9605\u8d8b\u52bf',
+  categoryStats: '\u56fe\u4e66\u5206\u7c7b\u5206\u5e03',
+  quickActions: '\u5feb\u6377\u64cd\u4f5c',
+  bookSearch: '\u641c\u7d22\u56fe\u4e66',
+  myBorrows: '\u6211\u7684\u501f\u9605',
+  bookManage: '\u56fe\u4e66\u7ba1\u7406',
+  userManage: '\u7528\u6237\u7ba1\u7406',
+  profile: '\u4e2a\u4eba\u4fe1\u606f',
+  username: '\u7528\u6237\u540d',
+  realName: '\u59d3\u540d',
+  roles: '\u89d2\u8272'
+}
 
+const userStore = useUserStore()
 const roleLabels = {
-  system_admin: '系统管理员',
-  super_admin: '超级管理员',
-  librarian: '馆员',
-  reader: '读者',
-  visitor: '访客'
+  system_admin: '\u7cfb\u7edf\u7ba1\u7406\u5458',
+  super_admin: '\u8d85\u7ea7\u7ba1\u7406\u5458',
+  librarian: '\u9986\u5458',
+  reader: '\u8bfb\u8005',
+  visitor: '\u8bbf\u5ba2'
 }
 
 const stats = ref({
@@ -123,11 +142,8 @@ const stats = ref({
   overdueCount: '-'
 })
 
-// 图表 DOM 引用
 const borrowTrendRef = ref(null)
 const categoryRef = ref(null)
-
-// 图表实例
 let borrowTrendChart = null
 let categoryChart = null
 
@@ -145,25 +161,20 @@ async function loadStats() {
     await nextTick()
     initBorrowTrendChart(data.borrowTrend || [])
     initCategoryChart(data.categoryStats || [])
-  } catch (e) { /* handled */ }
+  } catch (e) {
+    // handled by interceptor
+  }
 }
 
 function initBorrowTrendChart(trendData) {
   if (!borrowTrendRef.value) return
+  borrowTrendChart?.dispose()
   borrowTrendChart = echarts.init(borrowTrendRef.value)
   borrowTrendChart.setOption({
     tooltip: { trigger: 'axis' },
     grid: { left: 40, right: 20, top: 20, bottom: 30 },
-    xAxis: {
-      type: 'category',
-      data: trendData.map(item => item.date),
-      axisLabel: { fontSize: 12 }
-    },
-    yAxis: {
-      type: 'value',
-      minInterval: 1,
-      axisLabel: { fontSize: 12 }
-    },
+    xAxis: { type: 'category', data: trendData.map(item => item.date) },
+    yAxis: { type: 'value', minInterval: 1 },
     series: [{
       type: 'bar',
       data: trendData.map(item => item.count),
@@ -181,19 +192,16 @@ function initBorrowTrendChart(trendData) {
 
 function initCategoryChart(categoryData) {
   if (!categoryRef.value) return
+  categoryChart?.dispose()
   categoryChart = echarts.init(categoryRef.value)
   categoryChart.setOption({
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c} 本 ({d}%)'
-    },
+    tooltip: { trigger: 'item' },
     legend: {
       type: 'scroll',
       orient: 'vertical',
       right: 10,
       top: 20,
-      bottom: 20,
-      textStyle: { fontSize: 12 }
+      bottom: 20
     },
     series: [{
       type: 'pie',
@@ -202,9 +210,7 @@ function initCategoryChart(categoryData) {
       avoidLabelOverlap: false,
       itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
       label: { show: false },
-      emphasis: {
-        label: { show: true, fontSize: 14, fontWeight: 'bold' }
-      },
+      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
       data: categoryData
     }]
   })

@@ -1,7 +1,11 @@
-import request from '@/utils/request'
+﻿import request from '@/utils/request'
 
 export function getAuditLogs(params) {
   return request.get('/admin/audit-logs', { params })
+}
+
+export function getAuditOverview() {
+  return request.get('/admin/audit-logs/overview')
 }
 
 export function getAuditLogDetail(id) {

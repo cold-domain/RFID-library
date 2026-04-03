@@ -20,9 +20,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
-/**
- * Spring Security配置
- */
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
@@ -31,25 +28,24 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private JwtAuthorizationFilter jwtAuthorizationFilter;
 
+    @Autowired
+    private CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+
+    @Autowired
+    private CustomAccessDeniedHandler customAccessDeniedHandler;
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
-            // 开启跨域
             .cors().and()
-            // 关闭csrf保护
             .csrf().disable()
-            // 基于token，所以不需要session
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-            // JWT授权过滤器
             .addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class)
-            // 自定义认证失败和授权失败处理器
             .exceptionHandling()
-            .authenticationEntryPoint(new CustomAuthenticationEntryPoint())
-            .accessDeniedHandler(new CustomAccessDeniedHandler())
+            .authenticationEntryPoint(customAuthenticationEntryPoint)
+            .accessDeniedHandler(customAccessDeniedHandler)
             .and()
-            // 配置权限
             .authorizeRequests()
-            // 允许所有用户访问的路径
             .antMatchers(
                 "/auth/login",
                 "/auth/register",
@@ -59,18 +55,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 "/swagger-ui/**",
                 "/swagger-ui.html"
             ).permitAll()
-            // 需要特定角色的路径
-            .antMatchers("/admin/**").hasRole("system_admin")
-            .antMatchers("/super/**").hasAnyRole("system_admin", "super_admin")
-            .antMatchers("/librarian/**").hasAnyRole("system_admin", "super_admin", "librarian")
-            .antMatchers("/reader/**").hasAnyRole("system_admin", "super_admin", "librarian", "reader")
-            // 其他所有请求需要认证
             .anyRequest().authenticated();
     }
 
-    /**
-     * 跨域配置
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -84,9 +71,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return source;
     }
 
-    /**
-     * 密码加密器
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

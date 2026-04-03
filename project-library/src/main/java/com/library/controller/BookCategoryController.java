@@ -6,6 +6,7 @@ import com.library.dto.CategoryDTO;
 import com.library.service.BookCategoryService;
 import com.library.vo.CategoryVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -25,6 +26,7 @@ public class BookCategoryController {
      * 查询分类树
      */
     @GetMapping("/tree")
+    @PreAuthorize("hasAuthority('category:view')")
     public Result<List<CategoryVO>> tree() {
         List<CategoryVO> tree = bookCategoryService.getCategoryTree();
         return Result.success(tree);
@@ -34,6 +36,7 @@ public class BookCategoryController {
      * 查询所有启用分类（扁平列表）
      */
     @GetMapping
+    @PreAuthorize("hasAuthority('category:view')")
     public Result<List<CategoryVO>> list() {
         List<CategoryVO> categories = bookCategoryService.getEnabledCategories();
         return Result.success(categories);
@@ -43,6 +46,7 @@ public class BookCategoryController {
      * 新增分类
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('category:create')")
     public Result<?> add(@Valid @RequestBody CategoryDTO dto) {
         bookCategoryService.addCategory(dto, ContextHolder.getCurrentUserId());
         return Result.success("新增分类成功");
@@ -52,6 +56,7 @@ public class BookCategoryController {
      * 修改分类
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('category:update')")
     public Result<?> update(@PathVariable Long id, @Valid @RequestBody CategoryDTO dto) {
         bookCategoryService.updateCategory(id, dto);
         return Result.success("修改分类成功");
@@ -61,6 +66,7 @@ public class BookCategoryController {
      * 删除分类
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('category:delete')")
     public Result<?> delete(@PathVariable Long id) {
         bookCategoryService.removeById(id);
         return Result.success("删除分类成功");

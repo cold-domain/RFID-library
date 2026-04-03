@@ -7,14 +7,12 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.library.entity.AuditLog;
 import com.library.mapper.AuditLogMapper;
 import com.library.service.AuditLogService;
+import com.library.vo.AuditLogOverviewVO;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 
-/**
- * 审计日志服务实现类
- */
 @Service
 public class AuditLogServiceImpl extends ServiceImpl<AuditLogMapper, AuditLog> implements AuditLogService {
 
@@ -48,5 +46,17 @@ public class AuditLogServiceImpl extends ServiceImpl<AuditLogMapper, AuditLog> i
         LambdaQueryWrapper<AuditLog> wrapper = new LambdaQueryWrapper<>();
         wrapper.lt(AuditLog::getCreateTime, LocalDateTime.now().minusDays(retentionDays));
         baseMapper.delete(wrapper);
+    }
+
+    @Override
+    public AuditLogOverviewVO getOverview() {
+        LocalDateTime todayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
+        AuditLogOverviewVO overview = new AuditLogOverviewVO();
+        overview.setTotalCount(count());
+        overview.setTodayCount(count(new LambdaQueryWrapper<AuditLog>().ge(AuditLog::getCreateTime, todayStart)));
+        overview.setErrorCount(count(new LambdaQueryWrapper<AuditLog>().eq(AuditLog::getLogLevel, "ERROR")));
+        overview.setSecurityCount(count(new LambdaQueryWrapper<AuditLog>().eq(AuditLog::getLogLevel, "SECURITY")));
+        overview.setSuccessCount(count(new LambdaQueryWrapper<AuditLog>().eq(AuditLog::getLogLevel, "INFO")));
+        return overview;
     }
 }

@@ -1,6 +1,7 @@
 package com.library.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.library.dto.UserRoleAssignDTO;
 import com.library.entity.UserRole;
 
 import java.util.List;
@@ -13,7 +14,7 @@ public interface UserRoleService extends IService<UserRole> {
     /**
      * 为用户分配角色
      */
-    void assignRoles(Long userId, List<Long> roleIds, Long assignerId);
+    void assignRoles(Long userId, List<UserRoleAssignDTO> roleAssignments, Long assignerId);
 
     /**
      * 移除用户角色

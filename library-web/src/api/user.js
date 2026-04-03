@@ -28,6 +28,6 @@ export function updateUserStatus(id, status) {
   return request.put(`/admin/users/${id}/status`, null, { params: { status } })
 }
 
-export function assignRoles(id, roleIds) {
-  return request.put(`/admin/users/${id}/roles`, roleIds)
+export function assignRoles(id, roleAssignments) {
+  return request.put(`/admin/users/${id}/roles`, roleAssignments)
 }

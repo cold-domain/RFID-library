@@ -8,16 +8,21 @@ import com.library.common.exception.BusinessException;
 import com.library.entity.Role;
 import com.library.entity.User;
 import com.library.entity.UserRole;
+import com.library.entity.Permission;
+import com.library.common.constant.Constants;
+import com.library.mapper.PermissionMapper;
 import com.library.mapper.RoleMapper;
 import com.library.mapper.UserMapper;
 import com.library.mapper.UserRoleMapper;
 import com.library.service.UserService;
+import com.library.vo.UserRoleAssignmentVO;
 import com.library.vo.UserVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -37,6 +42,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Autowired
     private UserRoleMapper userRoleMapper;
+
+    @Autowired
+    private PermissionMapper permissionMapper;
 
     @Override
     public User login(String username, String password) {
@@ -105,27 +113,38 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         List<User> users = userPage.getRecords();
         Map<Long, List<String>> roleNamesMap = new HashMap<>();
         Map<Long, List<Long>> roleIdsMap = new HashMap<>();
+        Map<Long, List<UserRoleAssignmentVO>> roleAssignmentsMap = new HashMap<>();
         if (!users.isEmpty()) {
             List<Long> userIds = users.stream().map(User::getUserId).collect(Collectors.toList());
             // 查 user_roles
             LambdaQueryWrapper<UserRole> urWrapper = new LambdaQueryWrapper<>();
-            urWrapper.in(UserRole::getUserId, userIds).eq(UserRole::getStatus, 1);
+            urWrapper.in(UserRole::getUserId, userIds)
+                    .eq(UserRole::getStatus, 1)
+                    .and(w -> w.isNull(UserRole::getExpireDate).or().ge(UserRole::getExpireDate, LocalDate.now()));
             List<UserRole> userRoles = userRoleMapper.selectList(urWrapper);
             // 查 roles
             Set<Long> roleIdSet = userRoles.stream().map(UserRole::getRoleId).collect(Collectors.toSet());
-            Map<Long, String> roleNameMap = new HashMap<>();
+            Map<Long, Role> roleMap = new HashMap<>();
             if (!roleIdSet.isEmpty()) {
                 List<Role> roles = roleMapper.selectBatchIds(roleIdSet);
-                roleNameMap = roles.stream().collect(Collectors.toMap(Role::getRoleId, Role::getRoleName));
+                roleMap = roles.stream()
+                        .filter(role -> role.getStatus() != null && role.getStatus() == 1)
+                        .collect(Collectors.toMap(Role::getRoleId, role -> role));
             }
             // 组装每个用户的角色名称和角色ID（过滤已删除的角色）
             for (UserRole ur : userRoles) {
                 Long uid = ur.getUserId();
                 Long rid = ur.getRoleId();
-                String roleName = roleNameMap.get(rid);
-                if (roleName != null) {
-                    roleNamesMap.computeIfAbsent(uid, k -> new ArrayList<>()).add(roleName);
+                Role role = roleMap.get(rid);
+                if (role != null) {
+                    roleNamesMap.computeIfAbsent(uid, k -> new ArrayList<>()).add(role.getRoleName());
                     roleIdsMap.computeIfAbsent(uid, k -> new ArrayList<>()).add(rid);
+                    UserRoleAssignmentVO assignmentVO = new UserRoleAssignmentVO();
+                    assignmentVO.setRoleId(rid);
+                    assignmentVO.setRoleName(role.getRoleName());
+                    assignmentVO.setRoleCode(role.getRoleCode());
+                    assignmentVO.setExpireDate(ur.getExpireDate());
+                    roleAssignmentsMap.computeIfAbsent(uid, k -> new ArrayList<>()).add(assignmentVO);
                 }
             }
         }
@@ -133,7 +152,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 转换为 UserVO
         Map<Long, List<String>> finalRoleNamesMap = roleNamesMap;
         Map<Long, List<Long>> finalRoleIdsMap = roleIdsMap;
-        return userPage.convert(user -> toVO(user, finalRoleNamesMap, finalRoleIdsMap));
+        Map<Long, List<UserRoleAssignmentVO>> finalRoleAssignmentsMap = roleAssignmentsMap;
+        return userPage.convert(user -> toVO(user, finalRoleNamesMap, finalRoleIdsMap, finalRoleAssignmentsMap));
     }
 
     @Override
@@ -183,6 +203,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public List<String> getUserPermissionCodes(Long userId) {
+        List<String> roleCodes = getUserRoleCodes(userId);
+        if (roleCodes.contains(Constants.ROLE_SYSTEM_ADMIN) || roleCodes.contains(Constants.ROLE_SUPER_ADMIN)) {
+            LambdaQueryWrapper<Permission> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(Permission::getStatus, 1).orderByAsc(Permission::getSortOrder);
+            return permissionMapper.selectList(wrapper).stream()
+                    .map(Permission::getPermissionCode)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        }
         return baseMapper.selectPermissionCodesByUserId(userId);
     }
 
@@ -198,7 +227,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
     }
 
-    private UserVO toVO(User user, Map<Long, List<String>> roleNamesMap, Map<Long, List<Long>> roleIdsMap) {
+    private UserVO toVO(User user,
+                        Map<Long, List<String>> roleNamesMap,
+                        Map<Long, List<Long>> roleIdsMap,
+                        Map<Long, List<UserRoleAssignmentVO>> roleAssignmentsMap) {
         UserVO vo = new UserVO();
         vo.setId(user.getUserId());
         vo.setUsername(user.getUsername());
@@ -208,6 +240,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         vo.setStatus(user.getAccountStatus());
         vo.setRoles(roleNamesMap.getOrDefault(user.getUserId(), Collections.emptyList()));
         vo.setRoleIds(roleIdsMap.getOrDefault(user.getUserId(), Collections.emptyList()));
+        vo.setRoleAssignments(roleAssignmentsMap.getOrDefault(user.getUserId(), Collections.emptyList()));
         if (user.getCreateTime() != null) {
             vo.setCreateTime(user.getCreateTime().format(FMT));
         }

@@ -8,14 +8,12 @@ import com.library.common.exception.BusinessException;
 import com.library.entity.ExceptionRecord;
 import com.library.mapper.ExceptionRecordMapper;
 import com.library.service.ExceptionRecordService;
+import com.library.vo.ExceptionOverviewVO;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 
-/**
- * 异常记录服务实现类
- */
 @Service
 public class ExceptionRecordServiceImpl extends ServiceImpl<ExceptionRecordMapper, ExceptionRecord> implements ExceptionRecordService {
 
@@ -51,7 +49,7 @@ public class ExceptionRecordServiceImpl extends ServiceImpl<ExceptionRecordMappe
     public void resolveException(Long exceptionId, Long resolverId, String resolveNote) {
         ExceptionRecord record = baseMapper.selectById(exceptionId);
         if (record == null) {
-            throw new BusinessException("异常记录不存在");
+            throw new BusinessException("\u5f02\u5e38\u8bb0\u5f55\u4e0d\u5b58\u5728");
         }
         ExceptionRecord update = new ExceptionRecord();
         update.setExceptionId(exceptionId);
@@ -60,5 +58,33 @@ public class ExceptionRecordServiceImpl extends ServiceImpl<ExceptionRecordMappe
         update.setResolveTime(LocalDateTime.now());
         update.setResolveNote(resolveNote);
         baseMapper.updateById(update);
+    }
+
+    @Override
+    public void ignoreException(Long exceptionId, Long resolverId, String resolveNote) {
+        ExceptionRecord record = baseMapper.selectById(exceptionId);
+        if (record == null) {
+            throw new BusinessException("\u5f02\u5e38\u8bb0\u5f55\u4e0d\u5b58\u5728");
+        }
+        ExceptionRecord update = new ExceptionRecord();
+        update.setExceptionId(exceptionId);
+        update.setResolvedStatus(2);
+        update.setResolverId(resolverId);
+        update.setResolveTime(LocalDateTime.now());
+        update.setResolveNote(resolveNote);
+        baseMapper.updateById(update);
+    }
+
+    @Override
+    public ExceptionOverviewVO getOverview() {
+        LocalDateTime todayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
+        ExceptionOverviewVO overview = new ExceptionOverviewVO();
+        overview.setTotalCount(count());
+        overview.setTodayCount(count(new LambdaQueryWrapper<ExceptionRecord>().ge(ExceptionRecord::getCreateTime, todayStart)));
+        overview.setPendingCount(count(new LambdaQueryWrapper<ExceptionRecord>().eq(ExceptionRecord::getResolvedStatus, 0)));
+        overview.setResolvedCount(count(new LambdaQueryWrapper<ExceptionRecord>().eq(ExceptionRecord::getResolvedStatus, 1)));
+        overview.setIgnoredCount(count(new LambdaQueryWrapper<ExceptionRecord>().eq(ExceptionRecord::getResolvedStatus, 2)));
+        overview.setHighRiskCount(count(new LambdaQueryWrapper<ExceptionRecord>().in(ExceptionRecord::getExceptionLevel, "high", "critical")));
+        return overview;
     }
 }

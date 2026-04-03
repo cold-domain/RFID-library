@@ -2,19 +2,16 @@ package com.library;
 
 import com.library.common.utils.BCryptPasswordEncoderUtils;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
-//@SpringBootTest
-public class LibraryRfidSecurityApplicationTests {
+import static org.assertj.core.api.Assertions.assertThat;
 
-    @Autowired
-    private BCryptPasswordEncoderUtils bCryptPasswordEncoderUtils;
+class LibraryRfidSecurityApplicationTests {
 
     @Test
-    public void contextloads(){
-        String rawPassword = "123456";
-        String encodedPassword = bCryptPasswordEncoderUtils.encode(rawPassword);
-        System.out.println(encodedPassword);
+    void bcryptUtilityEncodesAndMatchesPassword() {
+        String encodedPassword = BCryptPasswordEncoderUtils.encode("123456");
+
+        assertThat(encodedPassword).isNotBlank();
+        assertThat(BCryptPasswordEncoderUtils.matches("123456", encodedPassword)).isTrue();
     }
 }

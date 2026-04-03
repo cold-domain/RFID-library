@@ -7,6 +7,7 @@ import com.library.entity.FineRecord;
 import com.library.service.FineRecordService;
 import com.library.vo.FineRecordVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -25,6 +26,7 @@ public class FineController {
      * 分页查询罚款记录
      */
     @GetMapping
+    @PreAuthorize("hasAuthority('fine:view')")
     public Result<?> list(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
@@ -38,6 +40,7 @@ public class FineController {
      * 创建罚款
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('fine:operate')")
     public Result<?> create(
             @RequestParam Long userId,
             @RequestParam(required = false) Long borrowRecordId,
@@ -53,6 +56,7 @@ public class FineController {
      * 支付罚款
      */
     @PostMapping("/{id}/pay")
+    @PreAuthorize("hasAuthority('fine:operate')")
     public Result<?> pay(@PathVariable Long id, @RequestParam BigDecimal amount) {
         Long operatorId = ContextHolder.getCurrentUserId();
         fineRecordService.payFine(id, amount, operatorId);
@@ -63,6 +67,7 @@ public class FineController {
      * 减免罚款
      */
     @PostMapping("/{id}/waive")
+    @PreAuthorize("hasAuthority('fine:operate')")
     public Result<?> waive(@PathVariable Long id, @RequestParam String reason) {
         Long operatorId = ContextHolder.getCurrentUserId();
         fineRecordService.waiveFine(id, reason, operatorId);
@@ -73,6 +78,7 @@ public class FineController {
      * 查询用户未付罚款总额
      */
     @GetMapping("/unpaid/{userId}")
+    @PreAuthorize("hasAuthority('fine:view')")
     public Result<?> unpaidAmount(@PathVariable Long userId) {
         BigDecimal amount = fineRecordService.getUnpaidAmount(userId);
         return Result.success(amount);

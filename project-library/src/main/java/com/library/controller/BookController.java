@@ -11,6 +11,7 @@ import com.library.service.BookStatusHistoryService;
 import com.library.service.RfidBindHistoryService;
 import com.library.vo.BookVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -36,6 +37,7 @@ public class BookController {
      * 分页查询图书列表
      */
     @GetMapping
+    @PreAuthorize("hasAuthority('book:view')")
     public Result<?> list(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
@@ -50,6 +52,7 @@ public class BookController {
      * 根据ID查询图书详情
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('book:view')")
     public Result<?> getById(@PathVariable Long id) {
         BookVO bookVO = bookService.getBookDetail(id);
         if (bookVO == null) {
@@ -62,6 +65,7 @@ public class BookController {
      * 新增图书
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('book:create')")
     public Result<?> add(@Valid @RequestBody BookDTO bookDTO) {
         bookService.addBook(bookDTO, ContextHolder.getCurrentUserId());
         return Result.success("新增图书成功");
@@ -71,6 +75,7 @@ public class BookController {
      * 修改图书信息
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('book:update')")
     public Result<?> update(@PathVariable Long id, @Valid @RequestBody BookDTO bookDTO) {
         bookService.updateBook(id, bookDTO, ContextHolder.getCurrentUserId());
         return Result.success("修改图书信息成功");
@@ -80,6 +85,7 @@ public class BookController {
      * 删除图书（逻辑删除）
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('book:delete')")
     public Result<?> delete(@PathVariable Long id) {
         bookService.removeById(id);
         return Result.success("删除图书成功");
@@ -89,6 +95,7 @@ public class BookController {
      * 绑定RFID标签
      */
     @PostMapping("/{id}/rfid/bind")
+    @PreAuthorize("hasAuthority('book:update')")
     public Result<?> bindRfid(@PathVariable Long id, @RequestParam String rfidTag) {
         Long operatorId = ContextHolder.getCurrentUserId();
         bookService.bindRfidTag(id, rfidTag, operatorId);
@@ -99,6 +106,7 @@ public class BookController {
      * 解绑RFID标签
      */
     @PostMapping("/{id}/rfid/unbind")
+    @PreAuthorize("hasAuthority('book:update')")
     public Result<?> unbindRfid(@PathVariable Long id) {
         Long operatorId = ContextHolder.getCurrentUserId();
         bookService.unbindRfidTag(id, operatorId);
@@ -109,6 +117,7 @@ public class BookController {
      * 更新图书馆藏状态
      */
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('book:update')")
     public Result<?> updateStatus(@PathVariable Long id, @RequestParam String status) {
         Long operatorId = ContextHolder.getCurrentUserId();
         bookService.updateCollectionStatus(id, status, operatorId);
@@ -119,6 +128,7 @@ public class BookController {
      * 查询图书RFID绑定历史
      */
     @GetMapping("/{id}/rfid/history")
+    @PreAuthorize("hasAuthority('book:view')")
     public Result<?> rfidHistory(@PathVariable Long id) {
         List<RfidBindHistory> history = rfidBindHistoryService.getHistoryByBookId(id);
         return Result.success(history);
@@ -128,6 +138,7 @@ public class BookController {
      * 查询图书状态变更历史
      */
     @GetMapping("/{id}/status/history")
+    @PreAuthorize("hasAuthority('book:view')")
     public Result<?> statusHistory(@PathVariable Long id) {
         List<BookStatusHistory> history = bookStatusHistoryService.getHistoryByBookId(id);
         return Result.success(history);

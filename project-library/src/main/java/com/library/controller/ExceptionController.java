@@ -7,13 +7,16 @@ import com.library.entity.ExceptionRecord;
 import com.library.service.ExceptionRecordService;
 import com.library.vo.ExceptionRecordVO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.format.DateTimeFormatter;
 
-/**
- * 异常记录控制器（管理员权限）
- */
 @RestController
 @RequestMapping("/admin/exceptions")
 public class ExceptionController {
@@ -23,10 +26,8 @@ public class ExceptionController {
 
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    /**
-     * 分页查询异常记录
-     */
     @GetMapping
+    @PreAuthorize("hasAuthority('exception:view')")
     public Result<?> list(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
@@ -38,26 +39,36 @@ public class ExceptionController {
         return Result.success(voPage);
     }
 
-    /**
-     * 查询异常详情
-     */
+    @GetMapping("/overview")
+    @PreAuthorize("hasAuthority('exception:view')")
+    public Result<?> overview() {
+        return Result.success(exceptionRecordService.getOverview());
+    }
+
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('exception:view')")
     public Result<?> getById(@PathVariable Long id) {
         ExceptionRecord record = exceptionRecordService.getById(id);
         if (record == null) {
-            return Result.error("异常记录不存在");
+            return Result.error("\u5f02\u5e38\u8bb0\u5f55\u4e0d\u5b58\u5728");
         }
         return Result.success(toVO(record));
     }
 
-    /**
-     * 处理异常（前端用params发送，后端用@RequestParam接收）
-     */
     @PostMapping("/{id}/resolve")
+    @PreAuthorize("hasAuthority('exception:resolve')")
     public Result<?> resolve(@PathVariable Long id, @RequestParam String resolveNote) {
         Long resolverId = ContextHolder.getCurrentUserId();
         exceptionRecordService.resolveException(id, resolverId, resolveNote);
-        return Result.success("异常已处理");
+        return Result.success("\u5f02\u5e38\u5df2\u5904\u7406");
+    }
+
+    @PostMapping("/{id}/ignore")
+    @PreAuthorize("hasAuthority('exception:resolve')")
+    public Result<?> ignore(@PathVariable Long id, @RequestParam(required = false) String resolveNote) {
+        Long resolverId = ContextHolder.getCurrentUserId();
+        exceptionRecordService.ignoreException(id, resolverId, resolveNote);
+        return Result.success("\u5f02\u5e38\u5df2\u5ffd\u7565");
     }
 
     private ExceptionRecordVO toVO(ExceptionRecord record) {
@@ -67,10 +78,13 @@ public class ExceptionController {
         vo.setExceptionLevel(record.getExceptionLevel());
         vo.setExceptionContent(record.getExceptionMessage());
         vo.setExceptionSource(record.getExceptionSource());
+        vo.setExceptionDetails(record.getExceptionDetails());
         vo.setUsername(record.getUsername());
         vo.setIpAddress(record.getIpAddress());
         vo.setRequestUrl(record.getRequestUrl());
         vo.setRequestMethod(record.getRequestMethod());
+        vo.setRequestSummary(record.getRequestSummary());
+        vo.setStackTraceSummary(record.getStackTraceSummary());
         vo.setResolvedStatus(record.getResolvedStatus());
         vo.setResolveNote(record.getResolveNote());
         if (record.getResolveTime() != null) {

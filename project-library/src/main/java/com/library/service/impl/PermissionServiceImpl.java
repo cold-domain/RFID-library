@@ -3,8 +3,11 @@ package com.library.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.library.entity.Permission;
+import com.library.mapper.UserMapper;
 import com.library.mapper.PermissionMapper;
+import com.library.common.constant.Constants;
 import com.library.service.PermissionService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,6 +19,9 @@ import java.util.stream.Collectors;
 @Service
 public class PermissionServiceImpl extends ServiceImpl<PermissionMapper, Permission> implements PermissionService {
 
+    @Autowired
+    private UserMapper userMapper;
+
     @Override
     public List<Permission> getPermissionsByRoleId(Long roleId) {
         return baseMapper.selectPermissionsByRoleId(roleId);
@@ -23,6 +29,12 @@ public class PermissionServiceImpl extends ServiceImpl<PermissionMapper, Permiss
 
     @Override
     public List<Permission> getPermissionsByUserId(Long userId) {
+        List<String> roleCodes = userMapper.selectRoleCodesByUserId(userId);
+        if (roleCodes.contains(Constants.ROLE_SYSTEM_ADMIN) || roleCodes.contains(Constants.ROLE_SUPER_ADMIN)) {
+            LambdaQueryWrapper<Permission> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(Permission::getStatus, 1).orderByAsc(Permission::getSortOrder);
+            return baseMapper.selectList(wrapper);
+        }
         return baseMapper.selectPermissionsByUserId(userId);
     }
 

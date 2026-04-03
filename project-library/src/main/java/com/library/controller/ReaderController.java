@@ -12,6 +12,7 @@ import com.library.vo.BorrowRecordVO;
 import com.library.vo.FineRecordVO;
 import com.library.vo.ReservationVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -40,6 +41,7 @@ public class ReaderController {
      * 获取个人信息
      */
     @GetMapping("/profile")
+    @PreAuthorize("hasAuthority('reader:profile')")
     public Result<?> getProfile() {
         Long userId = ContextHolder.getCurrentUserId();
         var user = userService.getById(userId);
@@ -54,6 +56,7 @@ public class ReaderController {
      * 修改个人信息
      */
     @PutMapping("/profile")
+    @PreAuthorize("hasAuthority('reader:profile')")
     public Result<?> updateProfile(@RequestBody com.library.entity.User user) {
         Long userId = ContextHolder.getCurrentUserId();
         user.setUserId(userId);
@@ -68,6 +71,7 @@ public class ReaderController {
      * 修改密码
      */
     @PutMapping("/password")
+    @PreAuthorize("hasAuthority('reader:profile')")
     public Result<?> changePassword(@RequestBody Map<String, String> params) {
         Long userId = ContextHolder.getCurrentUserId();
         String oldPassword = params.get("oldPassword");
@@ -80,6 +84,7 @@ public class ReaderController {
      * 查询我的借阅记录
      */
     @GetMapping("/borrows")
+    @PreAuthorize("hasAuthority('reader:borrows')")
     public Result<?> myBorrows(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
@@ -93,6 +98,7 @@ public class ReaderController {
      * 读者自助续借
      */
     @PostMapping("/borrows/{id}/renew")
+    @PreAuthorize("hasAuthority('reader:borrows')")
     public Result<?> renew(@PathVariable Long id) {
         Long operatorId = ContextHolder.getCurrentUserId();
         borrowRecordService.renewBook(id, operatorId);
@@ -103,6 +109,7 @@ public class ReaderController {
      * 预约图书
      */
     @PostMapping("/reservations")
+    @PreAuthorize("hasAuthority('reader:reservations')")
     public Result<?> reserve(@RequestParam Long bookId) {
         Long userId = ContextHolder.getCurrentUserId();
         BookReservation reservation = bookReservationService.reserveBook(userId, bookId);
@@ -113,6 +120,7 @@ public class ReaderController {
      * 查询我的预约记录
      */
     @GetMapping("/reservations")
+    @PreAuthorize("hasAuthority('reader:reservations')")
     public Result<?> myReservations(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
@@ -130,6 +138,7 @@ public class ReaderController {
      * 取消预约
      */
     @PostMapping("/reservations/{id}/cancel")
+    @PreAuthorize("hasAuthority('reader:reservations')")
     public Result<?> cancelReservation(@PathVariable Long id) {
         Long userId = ContextHolder.getCurrentUserId();
         bookReservationService.cancelReservation(id, userId);
@@ -140,6 +149,7 @@ public class ReaderController {
      * 查询我的罚款记录
      */
     @GetMapping("/fines")
+    @PreAuthorize("hasAuthority('reader:fines')")
     public Result<?> myFines(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
@@ -153,6 +163,7 @@ public class ReaderController {
      * 读者自助缴费
      */
     @PostMapping("/fines/{id}/pay")
+    @PreAuthorize("hasAuthority('reader:fines')")
     public Result<?> payFine(@PathVariable Long id, @RequestParam BigDecimal amount) {
         Long userId = ContextHolder.getCurrentUserId();
         fineRecordService.payFine(id, amount, userId);

@@ -10,6 +10,7 @@ import com.library.service.BookService;
 import com.library.service.BorrowRecordService;
 import com.library.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -43,6 +44,7 @@ public class DashboardController {
      * 获取控制中心统计数据
      */
     @GetMapping("/stats")
+    @PreAuthorize("hasAuthority('dashboard')")
     public Result<?> getStats() {
         Map<String, Object> data = new HashMap<>();
 

@@ -10,34 +10,39 @@ export const useUserStore = defineStore('user', () => {
 
   const isLoggedIn = computed(() => !!token.value)
   const roles = computed(() => userInfo.value.roles || [])
+  const permissionCodes = computed(() => userInfo.value.permissionCodes || [])
+  const menus = computed(() => userInfo.value.menus || [])
   const username = computed(() => userInfo.value.username || '')
   const realName = computed(() => userInfo.value.realName || '')
   const userId = computed(() => userInfo.value.userId || null)
-
-  const roleLevelMap = {
-    system_admin: 5,
-    super_admin: 4,
-    librarian: 3,
-    reader: 2,
-    visitor: 1
-  }
-
-  const maxRoleLevel = computed(() => {
-    let max = 0
-    for (const r of roles.value) {
-      const level = roleLevelMap[r] || 0
-      if (level > max) max = level
-    }
-    return max
-  })
 
   function hasRole(role) {
     return roles.value.includes(role)
   }
 
-  function hasAccess(requiredRole) {
-    const requiredLevel = roleLevelMap[requiredRole] || 0
-    return maxRoleLevel.value >= requiredLevel
+  function hasPermission(permissionCode) {
+    return permissionCodes.value.includes(permissionCode)
+  }
+
+  function flattenMenuPaths(nodes = []) {
+    const paths = []
+    for (const node of nodes) {
+      if (node?.url) paths.push(node.url)
+      if (node?.children?.length) {
+        paths.push(...flattenMenuPaths(node.children))
+      }
+    }
+    return paths
+  }
+
+  const menuPaths = computed(() => flattenMenuPaths(menus.value))
+
+  function canAccessPath(path) {
+    return menuPaths.value.includes(path)
+  }
+
+  function getDefaultRoutePath() {
+    return menuPaths.value[0] || '/dashboard'
   }
 
   async function login(form) {
@@ -49,7 +54,9 @@ export const useUserStore = defineStore('user', () => {
       userId: data.userId,
       username: data.username,
       realName: data.realName,
-      roles: data.roles
+      roles: data.roles || [],
+      permissionCodes: data.permissionCodes || [],
+      menus: data.menus || []
     }
     userInfo.value = info
     setUserInfo(info)
@@ -68,7 +75,9 @@ export const useUserStore = defineStore('user', () => {
         userId: data.userId,
         username: data.username,
         realName: data.realName,
-        roles: data.roles
+        roles: data.roles || [],
+        permissionCodes: data.permissionCodes || [],
+        menus: data.menus || []
       }
       userInfo.value = info
       setUserInfo(info)
@@ -86,7 +95,7 @@ export const useUserStore = defineStore('user', () => {
   }
 
   return {
-    token, userInfo, isLoggedIn, roles, username, realName, userId,
-    maxRoleLevel, hasRole, hasAccess, login, register, logout, fetchUserInfo
+    token, userInfo, isLoggedIn, roles, permissionCodes, menus, menuPaths, username, realName, userId,
+    hasRole, hasPermission, canAccessPath, getDefaultRoutePath, login, register, logout, fetchUserInfo
   }
 })

@@ -18,7 +18,9 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -57,8 +59,14 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
                     if (currentUser != null) {
                         // 获取用户角色列表，构建权限
                         List<String> roleCodes = userService.getUserRoleCodes(currentUser.getUserId());
-                        List<SimpleGrantedAuthority> authorities = roleCodes.stream()
-                                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                        List<String> permissionCodes = userService.getUserPermissionCodes(currentUser.getUserId());
+                        Set<String> authorityCodes = new LinkedHashSet<>();
+                        authorityCodes.addAll(roleCodes.stream()
+                                .map(role -> "ROLE_" + role)
+                                .collect(Collectors.toList()));
+                        authorityCodes.addAll(permissionCodes);
+                        List<SimpleGrantedAuthority> authorities = authorityCodes.stream()
+                                .map(SimpleGrantedAuthority::new)
                                 .collect(Collectors.toList());
 
                         UsernamePasswordAuthenticationToken authentication =

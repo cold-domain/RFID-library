@@ -6,6 +6,7 @@ import com.library.service.PermissionService;
 import com.library.vo.PermissionTreeNode;
 import com.library.vo.PermissionVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -25,6 +26,7 @@ public class PermissionController {
      * 查询权限树（返回完整 VO 树形结构，供权限管理页面和角色分配使用）
      */
     @GetMapping("/tree")
+    @PreAuthorize("hasAuthority('permission:view')")
     public Result<?> tree() {
         List<Permission> allPermissions = permissionService.list();
         List<PermissionVO> tree = buildTree(allPermissions);
@@ -35,6 +37,7 @@ public class PermissionController {
      * 查询所有权限（扁平列表）
      */
     @GetMapping
+    @PreAuthorize("hasAuthority('permission:view')")
     public Result<?> list() {
         List<Permission> permissions = permissionService.list();
         return Result.success(permissions);
@@ -44,6 +47,7 @@ public class PermissionController {
      * 根据角色ID查询权限（返回 id/name 结构，供角色权限分配回显）
      */
     @GetMapping("/role/{roleId}")
+    @PreAuthorize("hasAuthority('permission:view')")
     public Result<?> getByRoleId(@PathVariable Long roleId) {
         List<Permission> permissions = permissionService.getPermissionsByRoleId(roleId);
         List<PermissionTreeNode> result = permissions.stream().map(p -> {
@@ -59,6 +63,7 @@ public class PermissionController {
      * 新增权限
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('permission:create')")
     public Result<?> add(@RequestBody PermissionVO vo) {
         Permission permission = voToEntity(vo);
         permission.setStatus(1);
@@ -70,6 +75,7 @@ public class PermissionController {
      * 修改权限
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('permission:update')")
     public Result<?> update(@PathVariable Long id, @RequestBody PermissionVO vo) {
         Permission permission = voToEntity(vo);
         permission.setPermissionId(id);
@@ -81,6 +87,7 @@ public class PermissionController {
      * 删除权限
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('permission:delete')")
     public Result<?> delete(@PathVariable Long id) {
         permissionService.removeById(id);
         return Result.success("删除权限成功");

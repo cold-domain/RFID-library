@@ -28,5 +28,7 @@ public class UserVO {
     /** 角色ID列表（分配角色回显用） */
     private List<Long> roleIds;
 
+    private List<UserRoleAssignmentVO> roleAssignments;
+
     private String createTime;
 }

@@ -9,6 +9,7 @@ import com.library.service.BorrowRecordService;
 import com.library.vo.BookVO;
 import com.library.vo.BorrowRecordVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -28,6 +29,7 @@ public class BorrowController {
      * 搜索图书（供借书弹窗选择使用）
      */
     @GetMapping("/search-books")
+    @PreAuthorize("hasAuthority('borrow:view')")
     public Result<?> searchBooks(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
@@ -42,6 +44,7 @@ public class BorrowController {
      * 借书操作
      */
     @PostMapping("/borrow")
+    @PreAuthorize("hasAuthority('borrow:operate')")
     public Result<?> borrow(@RequestParam Long userId, @RequestParam Long bookId) {
         Long operatorId = ContextHolder.getCurrentUserId();
         BorrowRecord record = borrowRecordService.borrowBook(userId, bookId, operatorId);
@@ -52,6 +55,7 @@ public class BorrowController {
      * 还书操作
      */
     @PostMapping("/{id}/return")
+    @PreAuthorize("hasAuthority('borrow:operate')")
     public Result<?> returnBook(@PathVariable Long id) {
         Long operatorId = ContextHolder.getCurrentUserId();
         borrowRecordService.returnBook(id, operatorId);
@@ -62,6 +66,7 @@ public class BorrowController {
      * 续借操作
      */
     @PostMapping("/{id}/renew")
+    @PreAuthorize("hasAuthority('borrow:operate')")
     public Result<?> renew(@PathVariable Long id) {
         Long operatorId = ContextHolder.getCurrentUserId();
         borrowRecordService.renewBook(id, operatorId);
@@ -72,6 +77,7 @@ public class BorrowController {
      * 分页查询所有借阅记录
      */
     @GetMapping
+    @PreAuthorize("hasAuthority('borrow:view')")
     public Result<?> list(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
@@ -85,6 +91,7 @@ public class BorrowController {
      * 手动触发逾期检查
      */
     @PostMapping("/check-overdue")
+    @PreAuthorize("hasAuthority('borrow:operate')")
     public Result<?> checkOverdue() {
         borrowRecordService.checkOverdue();
         return Result.success("逾期检查完成");

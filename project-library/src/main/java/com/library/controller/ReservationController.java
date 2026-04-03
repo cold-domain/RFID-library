@@ -6,6 +6,7 @@ import com.library.common.vo.Result;
 import com.library.service.BookReservationService;
 import com.library.vo.ReservationVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -22,6 +23,7 @@ public class ReservationController {
      * 分页查询所有预约记录
      */
     @GetMapping
+    @PreAuthorize("hasAuthority('reservation:view')")
     public Result<?> list(
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize,
@@ -39,6 +41,7 @@ public class ReservationController {
      * 确认取书
      */
     @PostMapping("/{id}/pickup")
+    @PreAuthorize("hasAuthority('reservation:operate')")
     public Result<?> confirmPickup(@PathVariable Long id) {
         Long operatorId = ContextHolder.getCurrentUserId();
         bookReservationService.confirmPickup(id, operatorId);
@@ -49,6 +52,7 @@ public class ReservationController {
      * 手动处理过期预约
      */
     @PostMapping("/check-expired")
+    @PreAuthorize("hasAuthority('reservation:operate')")
     public Result<?> checkExpired() {
         bookReservationService.checkExpiredReservations();
         return Result.success("过期预约处理完成");

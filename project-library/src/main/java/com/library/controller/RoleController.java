@@ -11,6 +11,7 @@ import com.library.service.RoleService;
 import com.library.service.UserRoleService;
 import com.library.vo.RoleVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.format.DateTimeFormatter;
@@ -39,6 +40,7 @@ public class RoleController {
      * 查询所有角色（含禁用）
      */
     @GetMapping
+    @PreAuthorize("hasAuthority('role:view')")
     public Result<?> list() {
         List<Role> roles = roleService.list();
         List<RoleVO> voList = roles.stream().map(this::toVO).collect(Collectors.toList());
@@ -49,6 +51,7 @@ public class RoleController {
      * 根据ID查询角色
      */
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('role:view')")
     public Result<?> getById(@PathVariable Long id) {
         Role role = roleService.getById(id);
         if (role == null) {
@@ -61,6 +64,7 @@ public class RoleController {
      * 新增角色
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('role:create')")
     public Result<?> add(@RequestBody Role role) {
         role.setCreatorId(ContextHolder.getCurrentUserId());
         roleService.save(role);
@@ -71,6 +75,7 @@ public class RoleController {
      * 修改角色
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('role:update')")
     public Result<?> update(@PathVariable Long id, @RequestBody Role role) {
         role.setRoleId(id);
         roleService.updateById(role);
@@ -81,6 +86,7 @@ public class RoleController {
      * 删除角色（同时清理关联的用户角色和角色权限记录）
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('role:delete')")
     public Result<?> delete(@PathVariable Long id) {
         Role role = roleService.getById(id);
         if (role != null && role.getIsSystemRole() == 1) {
@@ -99,6 +105,7 @@ public class RoleController {
      * 为角色分配权限
      */
     @PutMapping("/{id}/permissions")
+    @PreAuthorize("hasAuthority('role:update')")
     public Result<?> assignPermissions(@PathVariable Long id, @RequestBody List<Long> permissionIds) {
         Long assignerId = ContextHolder.getCurrentUserId();
         rolePermissionService.assignPermissions(id, permissionIds, assignerId);

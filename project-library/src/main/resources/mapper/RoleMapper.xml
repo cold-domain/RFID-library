@@ -7,7 +7,10 @@
         SELECT r.*
         FROM roles r
         INNER JOIN user_roles ur ON r.role_id = ur.role_id
-        WHERE ur.user_id = #{userId} AND ur.status = 1 AND r.status = 1
+        WHERE ur.user_id = #{userId}
+          AND ur.status = 1
+          AND r.status = 1
+          AND (ur.expire_date IS NULL OR ur.expire_date >= CURDATE())
         ORDER BY r.sort_order ASC
     </select>
 

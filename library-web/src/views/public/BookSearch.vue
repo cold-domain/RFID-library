@@ -1,17 +1,23 @@
-<template>
+﻿<template>
   <div class="book-search">
     <el-card>
-      <template #header>图书搜索</template>
+      <template #header>{{ texts.pageTitle }}</template>
       <el-form :inline="true" @submit.prevent="handleSearch">
         <el-form-item>
-          <el-input v-model="queryParams.keyword" placeholder="书名/作者/ISBN" clearable style="width: 250px;" @keyup.enter="handleSearch" />
+          <el-input
+            v-model="queryParams.keyword"
+            :placeholder="texts.keywordPlaceholder"
+            clearable
+            style="width: 250px;"
+            @keyup.enter="handleSearch"
+          />
         </el-form-item>
         <el-form-item>
           <el-tree-select
             v-model="queryParams.categoryId"
             :data="categoryTree"
             :props="{ label: 'name', value: 'id', children: 'children' }"
-            placeholder="选择分类"
+            :placeholder="texts.categoryPlaceholder"
             clearable
             check-strictly
             style="width: 200px;"
@@ -19,31 +25,37 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">
-            <el-icon><Search /></el-icon>搜索
+            <el-icon><Search /></el-icon>{{ texts.search }}
           </el-button>
         </el-form-item>
       </el-form>
 
       <el-table :data="list" v-loading="loading" stripe>
-        <el-table-column prop="title" label="书名" min-width="180" />
-        <el-table-column prop="author" label="作者" width="120" />
+        <el-table-column prop="title" :label="texts.title" min-width="180" />
+        <el-table-column prop="author" :label="texts.author" width="120" />
         <el-table-column prop="isbn" label="ISBN" width="140" />
-        <el-table-column prop="publisher" label="出版社" width="140" />
-        <el-table-column prop="categoryName" label="分类" width="100" />
-        <el-table-column prop="status" label="状态" width="90">
+        <el-table-column prop="publisher" :label="texts.publisher" width="140" />
+        <el-table-column prop="categoryName" :label="texts.category" width="120" />
+        <el-table-column prop="status" :label="texts.status" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'on_shelf' ? 'success' : row.status === 'borrowed' ? 'warning' : 'danger'">
-              {{ { on_shelf: '在架', borrowed: '已借出', exception: '异常' }[row.status] || row.status }}
-            </el-tag>
+            <el-tag :type="statusTagType(row.status)">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="140" fixed="right">
+        <el-table-column :label="texts.operation" width="160" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link @click="handleDetail(row)">详情</el-button>
-            <el-button v-if="userStore.hasAccess('reader')" type="warning" link @click="handleReserve(row)">预约</el-button>
+            <el-button type="primary" link @click="handleDetail(row)">{{ texts.detail }}</el-button>
+            <el-button
+              v-if="userStore.hasPermission('reader:reservations')"
+              type="warning"
+              link
+              @click="handleReserve(row)"
+            >
+              {{ texts.reserve }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
+
       <el-pagination
         v-model:current-page="queryParams.pageNum"
         v-model:page-size="queryParams.pageSize"
@@ -56,32 +68,57 @@
       />
     </el-card>
 
-    <!-- 图书详情对话框 -->
-    <el-dialog v-model="detailVisible" title="图书详情" width="500px">
-      <el-descriptions :column="1" border v-if="currentBook">
-        <el-descriptions-item label="书名">{{ currentBook.title }}</el-descriptions-item>
-        <el-descriptions-item label="作者">{{ currentBook.author }}</el-descriptions-item>
+    <el-dialog v-model="detailVisible" :title="texts.detailTitle" width="560px">
+      <el-descriptions v-if="currentBook" :column="1" border>
+        <el-descriptions-item :label="texts.title">{{ currentBook.title }}</el-descriptions-item>
+        <el-descriptions-item :label="texts.author">{{ currentBook.author }}</el-descriptions-item>
         <el-descriptions-item label="ISBN">{{ currentBook.isbn }}</el-descriptions-item>
-        <el-descriptions-item label="出版社">{{ currentBook.publisher }}</el-descriptions-item>
-        <el-descriptions-item label="出版日期">{{ currentBook.publishDate }}</el-descriptions-item>
-        <el-descriptions-item label="分类">{{ currentBook.categoryName }}</el-descriptions-item>
-        <el-descriptions-item label="馆藏位置">{{ currentBook.location }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{ { on_shelf: '在架', borrowed: '已借出', exception: '异常' }[currentBook.status] || currentBook.status }}</el-descriptions-item>
-        <el-descriptions-item label="简介">{{ currentBook.description || '暂无' }}</el-descriptions-item>
+        <el-descriptions-item :label="texts.publisher">{{ currentBook.publisher }}</el-descriptions-item>
+        <el-descriptions-item :label="texts.publishDate">{{ currentBook.publishDate }}</el-descriptions-item>
+        <el-descriptions-item :label="texts.category">{{ currentBook.categoryName }}</el-descriptions-item>
+        <el-descriptions-item :label="texts.location">{{ currentBook.location }}</el-descriptions-item>
+        <el-descriptions-item :label="texts.status">{{ statusLabel(currentBook.status) }}</el-descriptions-item>
+        <el-descriptions-item :label="texts.description">{{ currentBook.description || texts.none }}</el-descriptions-item>
       </el-descriptions>
-      <template #footer v-if="userStore.hasAccess('reader')">
-        <el-button type="warning" @click="handleReserve(currentBook)">预约此书</el-button>
+      <template #footer v-if="userStore.hasPermission('reader:reservations')">
+        <el-button type="warning" @click="handleReserve(currentBook)">{{ texts.reserveThisBook }}</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPublicBooks, getPublicBookDetail, getPublicCategories } from '@/api/publicBook'
 import { reserveBook } from '@/api/reader'
 import { useUserStore } from '@/store/user'
-import { ElMessage, ElMessageBox } from 'element-plus'
+
+const texts = {
+  pageTitle: '\u56fe\u4e66\u641c\u7d22',
+  keywordPlaceholder: '\u4e66\u540d / \u4f5c\u8005 / ISBN',
+  categoryPlaceholder: '\u9009\u62e9\u5206\u7c7b',
+  search: '\u641c\u7d22',
+  title: '\u4e66\u540d',
+  author: '\u4f5c\u8005',
+  publisher: '\u51fa\u7248\u793e',
+  category: '\u5206\u7c7b',
+  status: '\u72b6\u6001',
+  operation: '\u64cd\u4f5c',
+  detail: '\u8be6\u60c5',
+  reserve: '\u9884\u7ea6',
+  detailTitle: '\u56fe\u4e66\u8be6\u60c5',
+  publishDate: '\u51fa\u7248\u65e5\u671f',
+  location: '\u9986\u85cf\u4f4d\u7f6e',
+  description: '\u7b80\u4ecb',
+  none: '\u6682\u65e0',
+  reserveThisBook: '\u9884\u7ea6\u6b64\u4e66',
+  reserveConfirm: '\u9884\u7ea6\u786e\u8ba4',
+  reserveSuccess: '\u9884\u7ea6\u6210\u529f',
+  available: '\u5728\u67b6',
+  borrowed: '\u5df2\u501f\u51fa',
+  exception: '\u5f02\u5e38'
+}
 
 const userStore = useUserStore()
 const loading = ref(false)
@@ -90,8 +127,23 @@ const total = ref(0)
 const categoryTree = ref([])
 const detailVisible = ref(false)
 const currentBook = ref(null)
-
 const queryParams = reactive({ pageNum: 1, pageSize: 10, keyword: '', categoryId: '' })
+
+function statusLabel(status) {
+  return {
+    on_shelf: texts.available,
+    borrowed: texts.borrowed,
+    exception: texts.exception
+  }[status] || status
+}
+
+function statusTagType(status) {
+  return {
+    on_shelf: 'success',
+    borrowed: 'warning',
+    exception: 'danger'
+  }[status] || 'info'
+}
 
 async function loadData() {
   loading.value = true
@@ -99,15 +151,20 @@ async function loadData() {
     const res = await getPublicBooks(queryParams)
     list.value = res.data.records || res.data.list || []
     total.value = res.data.total || 0
-  } catch (e) { /* handled */ }
-  finally { loading.value = false }
+  } catch (e) {
+    // handled by interceptor
+  } finally {
+    loading.value = false
+  }
 }
 
 async function loadCategories() {
   try {
     const res = await getPublicCategories()
     categoryTree.value = res.data || []
-  } catch (e) { /* handled */ }
+  } catch (e) {
+    // handled by interceptor
+  }
 }
 
 function handleSearch() {
@@ -120,17 +177,21 @@ async function handleDetail(row) {
     const res = await getPublicBookDetail(row.id)
     currentBook.value = res.data
     detailVisible.value = true
-  } catch (e) { /* handled */ }
+  } catch (e) {
+    // handled by interceptor
+  }
 }
 
 async function handleReserve(book) {
   if (!book) return
-  await ElMessageBox.confirm(`确定预约《${book.title}》吗？`, '预约确认')
+  await ElMessageBox.confirm(`\u786e\u5b9a\u9884\u7ea6\u300a${book.title}\u300b\u5417\uff1f`, texts.reserveConfirm, { type: 'warning' })
   try {
     await reserveBook(book.id)
-    ElMessage.success('预约成功')
+    ElMessage.success(texts.reserveSuccess)
     detailVisible.value = false
-  } catch (e) { /* handled */ }
+  } catch (e) {
+    // handled by interceptor
+  }
 }
 
 onMounted(() => {
