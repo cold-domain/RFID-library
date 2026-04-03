@@ -49,6 +49,7 @@ const appStore = useAppStore()
 const titleMap = {
   dashboard: '控制中心',
   'public:book': '图书搜索',
+  'public:hot-books': '热门图书榜',
   reader: '读者中心',
   'reader:profile': '个人信息',
   'reader:borrows': '我的借阅',
@@ -66,7 +67,19 @@ const titleMap = {
   exception: '异常管理'
 }
 
-const renderMenus = computed(() => (userStore.menus || []).filter(item => item?.url || (item?.children || []).length > 0))
+const renderMenus = computed(() => {
+  const baseMenus = [...(userStore.menus || [])]
+  const hasHotBooksMenu = baseMenus.some(item => item?.url === '/public/hot-books')
+  if (userStore.hasPermission('public:book') && !hasHotBooksMenu) {
+    baseMenus.push({
+      id: 'public-hot-books',
+      permissionCode: 'public:hot-books',
+      name: '热门图书榜',
+      url: '/public/hot-books'
+    })
+  }
+  return baseMenus.filter(item => item?.url || (item?.children || []).length > 0)
+})
 
 function visibleChildren(item) {
   return (item?.children || []).filter(child => child?.url || (child?.children || []).length > 0)

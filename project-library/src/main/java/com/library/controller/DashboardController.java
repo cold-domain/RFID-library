@@ -6,9 +6,11 @@ import com.library.entity.Book;
 import com.library.entity.BookCategory;
 import com.library.entity.BorrowRecord;
 import com.library.service.BookCategoryService;
+import com.library.service.BookHotRankService;
 import com.library.service.BookService;
 import com.library.service.BorrowRecordService;
 import com.library.service.UserService;
+import com.library.vo.HotBookVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,6 +41,9 @@ public class DashboardController {
 
     @Autowired
     private BookCategoryService bookCategoryService;
+
+    @Autowired
+    private BookHotRankService bookHotRankService;
 
     /**
      * 获取控制中心统计数据
@@ -112,6 +117,9 @@ public class DashboardController {
             borrowTrend.add(item);
         });
         data.put("borrowTrend", borrowTrend);
+
+        List<HotBookVO> hotBooks = bookHotRankService.getHotBooks(10);
+        data.put("hotBooks", hotBooks);
 
         return Result.success(data);
     }

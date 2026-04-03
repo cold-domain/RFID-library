@@ -35,6 +35,12 @@ const routes = [
         meta: { title: '图书搜索', permission: 'public:book' }
       },
       {
+        path: 'public/hot-books',
+        name: 'HotBooks',
+        component: () => import('@/views/public/HotBooksView.vue'),
+        meta: { title: 'Hot Books', permission: 'public:book' }
+      },
+      {
         path: 'reader/profile',
         name: 'Profile',
         component: () => import('@/views/reader/ProfileView.vue'),

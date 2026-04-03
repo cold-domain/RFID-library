@@ -2,9 +2,11 @@ package com.library.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.library.common.vo.Result;
+import com.library.service.BookHotRankService;
 import com.library.service.BookCategoryService;
 import com.library.vo.BookVO;
 import com.library.vo.CategoryVO;
+import com.library.vo.HotBookVO;
 import com.library.service.BookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +25,9 @@ public class PublicBookController {
 
     @Autowired
     private BookCategoryService bookCategoryService;
+
+    @Autowired
+    private BookHotRankService bookHotRankService;
 
     /**
      * 公开查询图书列表
@@ -56,5 +61,14 @@ public class PublicBookController {
     public Result<?> categories() {
         List<CategoryVO> categories = bookCategoryService.getCategoryTree();
         return Result.success(categories);
+    }
+
+    /**
+     * 公开热门图书榜
+     */
+    @GetMapping("/hot")
+    public Result<?> hotBooks(@RequestParam(defaultValue = "10") int limit) {
+        List<HotBookVO> hotBooks = bookHotRankService.getHotBooks(limit);
+        return Result.success(hotBooks);
     }
 }

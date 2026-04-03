@@ -12,6 +12,7 @@ import com.library.entity.User;
 import com.library.mapper.BookMapper;
 import com.library.mapper.BorrowRecordMapper;
 import com.library.mapper.UserMapper;
+import com.library.service.BookHotRankService;
 import com.library.service.BookStatusHistoryService;
 import com.library.service.BorrowRecordService;
 import com.library.service.UserService;
@@ -20,6 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
@@ -49,6 +52,10 @@ public class BorrowRecordServiceImpl extends ServiceImpl<BorrowRecordMapper, Bor
     @Autowired
     @Lazy
     private UserService userService;
+
+    @Autowired
+    @Lazy
+    private BookHotRankService bookHotRankService;
 
     @Override
     @Transactional
@@ -114,6 +121,7 @@ public class BorrowRecordServiceImpl extends ServiceImpl<BorrowRecordMapper, Bor
         // 记录图书状态变更
         bookStatusHistoryService.recordStatusChange(bookId, Constants.BOOK_STATUS_ON_SHELF, Constants.BOOK_STATUS_BORROWED, "读者借阅", operatorId);
 
+        registerHotRankUpdate(bookId);
         return record;
     }
 
@@ -287,5 +295,21 @@ public class BorrowRecordServiceImpl extends ServiceImpl<BorrowRecordMapper, Bor
         vo.setRenewCount(record.getRenewCount());
         vo.setStatus(record.getBorrowStatus());
         return vo;
+    }
+
+    /**
+     * 在事务提交后再刷新 Redis 热门榜，避免回滚时产生脏数据。
+     */
+    private void registerHotRankUpdate(Long bookId) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            bookHotRankService.recordBorrow(bookId);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                bookHotRankService.recordBorrow(bookId);
+            }
+        });
     }
 }

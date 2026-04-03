@@ -11,3 +11,7 @@ export function getPublicBookDetail(id) {
 export function getPublicCategories() {
   return request.get('/books/public/categories')
 }
+
+export function getPublicHotBooks(params) {
+  return request.get('/books/public/hot', { params })
+}

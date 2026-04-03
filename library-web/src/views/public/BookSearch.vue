@@ -1,5 +1,35 @@
 ﻿<template>
   <div class="book-search">
+    <el-card class="hot-recommend-card" shadow="never">
+      <div class="hot-recommend-header">
+        <div>
+          <div class="hot-kicker">{{ texts.hotKicker }}</div>
+          <h3>{{ texts.hotTitle }}</h3>
+          <p>{{ texts.hotSubtitle }}</p>
+        </div>
+        <el-button type="danger" plain @click="goToHotBooks">
+          {{ texts.viewHotRanking }}
+        </el-button>
+      </div>
+      <div v-loading="hotLoading" class="hot-recommend-grid">
+        <div
+          v-for="book in hotBooks.slice(0, 4)"
+          :key="book.id"
+          class="hot-book-card"
+          @click="handleHotDetail(book)"
+        >
+          <div class="hot-book-rank">TOP {{ book.rank }}</div>
+          <div class="hot-book-title">{{ book.title }}</div>
+          <div class="hot-book-meta">{{ book.author || texts.unknownAuthor }}</div>
+          <div class="hot-book-meta">{{ book.categoryName || texts.unknownCategory }}</div>
+          <div class="hot-book-footer">
+            <el-tag size="small" :type="statusTagType(book.status)">{{ statusLabel(book.status) }}</el-tag>
+            <span class="hot-book-count">{{ book.borrowCount }} {{ texts.hotBorrowUnit }}</span>
+          </div>
+        </div>
+      </div>
+    </el-card>
+
     <el-card>
       <template #header>{{ texts.pageTitle }}</template>
       <el-form :inline="true" @submit.prevent="handleSearch">
@@ -26,6 +56,11 @@
         <el-form-item>
           <el-button type="primary" @click="handleSearch">
             <el-icon><Search /></el-icon>{{ texts.search }}
+          </el-button>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="danger" plain @click="goToHotBooks">
+            {{ texts.viewHotRanking }}
           </el-button>
         </el-form-item>
       </el-form>
@@ -89,13 +124,19 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getPublicBooks, getPublicBookDetail, getPublicCategories } from '@/api/publicBook'
+import { getPublicBooks, getPublicBookDetail, getPublicCategories, getPublicHotBooks } from '@/api/publicBook'
 import { reserveBook } from '@/api/reader'
 import { useUserStore } from '@/store/user'
 
 const texts = {
   pageTitle: '\u56fe\u4e66\u641c\u7d22',
+  hotKicker: '\u70ed\u95e8\u63a8\u8350',
+  hotTitle: '\u672c\u5468\u70ed\u95e8\u56fe\u4e66',
+  hotSubtitle: '\u57fa\u4e8e\u501f\u9605\u6392\u884c\u7684\u5feb\u901f\u63a8\u8350\uff0c\u53ef\u76f4\u63a5\u67e5\u770b\u8be6\u60c5\u6216\u8fdb\u5165\u5b8c\u6574\u699c\u5355\u3002',
+  viewHotRanking: '\u67e5\u770b\u5b8c\u6574\u699c\u5355',
+  hotBorrowUnit: '\u6b21',
   keywordPlaceholder: '\u4e66\u540d / \u4f5c\u8005 / ISBN',
   categoryPlaceholder: '\u9009\u62e9\u5206\u7c7b',
   search: '\u641c\u7d22',
@@ -117,12 +158,17 @@ const texts = {
   reserveSuccess: '\u9884\u7ea6\u6210\u529f',
   available: '\u5728\u67b6',
   borrowed: '\u5df2\u501f\u51fa',
-  exception: '\u5f02\u5e38'
+  exception: '\u5f02\u5e38',
+  unknownAuthor: '\u4f5c\u8005\u672a\u77e5',
+  unknownCategory: '\u672a\u5206\u7c7b'
 }
 
+const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(false)
+const hotLoading = ref(false)
 const list = ref([])
+const hotBooks = ref([])
 const total = ref(0)
 const categoryTree = ref([])
 const detailVisible = ref(false)
@@ -167,9 +213,25 @@ async function loadCategories() {
   }
 }
 
+async function loadHotBooks() {
+  hotLoading.value = true
+  try {
+    const res = await getPublicHotBooks({ limit: 4 })
+    hotBooks.value = res.data || []
+  } catch (e) {
+    // handled by interceptor
+  } finally {
+    hotLoading.value = false
+  }
+}
+
 function handleSearch() {
   queryParams.pageNum = 1
   loadData()
+}
+
+function goToHotBooks() {
+  router.push('/public/hot-books')
 }
 
 async function handleDetail(row) {
@@ -180,6 +242,10 @@ async function handleDetail(row) {
   } catch (e) {
     // handled by interceptor
   }
+}
+
+function handleHotDetail(book) {
+  handleDetail(book)
 }
 
 async function handleReserve(book) {
@@ -195,7 +261,119 @@ async function handleReserve(book) {
 }
 
 onMounted(() => {
+  loadHotBooks()
   loadData()
   loadCategories()
 })
 </script>
+
+<style scoped>
+.hot-recommend-card {
+  margin-bottom: 20px;
+  border: none;
+  background:
+    radial-gradient(circle at top right, rgba(245, 108, 108, 0.14), transparent 30%),
+    linear-gradient(135deg, #fff8f5 0%, #fff 50%, #fff7ef 100%);
+}
+
+.hot-recommend-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.hot-kicker {
+  color: #f56c6c;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.hot-recommend-header h3 {
+  margin: 8px 0;
+  font-size: 28px;
+  color: #303133;
+}
+
+.hot-recommend-header p {
+  margin: 0;
+  color: #606266;
+  line-height: 1.7;
+}
+
+.hot-recommend-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.hot-book-card {
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid #fde2e2;
+  background: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hot-book-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(245, 108, 108, 0.12);
+}
+
+.hot-book-rank {
+  color: #f56c6c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hot-book-title {
+  margin-top: 10px;
+  color: #303133;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.hot-book-meta {
+  margin-top: 8px;
+  color: #909399;
+  font-size: 13px;
+}
+
+.hot-book-footer {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hot-book-count {
+  color: #f56c6c;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 1200px) {
+  .hot-recommend-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .hot-recommend-header {
+    flex-direction: column;
+  }
+
+  .hot-recommend-header h3 {
+    font-size: 24px;
+  }
+
+  .hot-recommend-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
